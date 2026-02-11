@@ -53,7 +53,7 @@ VirusTotal analysis of the recovered binary returned a **46 / 63 detection score
 
 <img width="1280" height="648" alt="image" src="https://github.com/user-attachments/assets/23305203-e6f9-4434-918b-dd3c6c2dceb1" />
 
-The investigation began after Microsoft Defender for Endpoint generated an alert indicating **Malware or Potentially Unwanted Application (PUA)** activity on the Linux host. The alert correlated with suspicious file creation and execution behavior occurring under the `root` user context.
+The investigation began after Microsoft Defender for Endpoint generated an alert indicating **Malware or PUA** activity on the Linux host. The alert correlated with suspicious file creation and execution behavior occurring under the `root` user context.
 
 This detection prompted analysis of:
 
@@ -78,6 +78,126 @@ This detection prompted analysis of:
    - dash (Lightweight shell used to execute scripts)
   
 ---
+
+### Student changes Root password
+- Student begins the lab, changing root password to 'root'
+   - `2026-01-30T13:50:32.826013Z` (1:50pm) — /etc/shadow edited by labuser via root (likely a password change)
+   - `2026-01-30T14:02:04.257228Z` ~12 minutes later, first suspicious file `/var/tmp/AHTKzAEv` is created
+
+Within minutes, `AHTKzAEv` and its siblings appear in `/var/tmp` or `/usr/bin` with gibberish names, running as root processes.
+
+```kql
+DeviceFileEvents
+| where DeviceName contains "fix-michael"
+| where TimeGenerated >= ago(15d)
+| order by TimeGenerated asc
+| project TimeGenerated, ActionType, DeviceName, FileName, FolderPath, InitiatingProcessAccountName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, InitiatingProcessParentFileName
+```
+
+<br>
+
+<img width="1103" height="283" alt="image" src="https://github.com/user-attachments/assets/6ac566a0-a285-4a43-b403-a1ee36c917fc" />
+
+<Br>
+
+-File lifecycle after creation:
+   - 2:02:04 — AHTKzAEv and multiple x.sh files created, initial payload and helper scripts
+   - 2:02:04.957 — retea in /dev/shm created, /dev/shm is shared memory; malware sometimes drops helpers here for fast execution or stealth (RAM-only execution)
+   - 2:02:05 — /root/.ssh/authorized_keys updated Allows persistence via SSH (attacker can log in without a password)
+   - 2:02:05 — /etc/passwd and /etc/shadow updated Confirms the attacker escalated privileges / added backdoors, possibly adding a new root password.
+- Repeated FileCreated / FileDeleted events for x.sh and AHTKzAEv
+   - This pattern suggests execution loops: run the script → collect data → delete temporary files → drop new scripts to continue
+   - Deleting files is often to avoid forensic detection
+ 
+### Root Cron Persistence
+
+<img width="1104" height="345" alt="image" src="https://github.com/user-attachments/assets/1770c4e6-7410-4422-9f9a-e19af14f3de1" />
+
+start time: 2026-01-30T14:04:23.447447Z
+end: 2026-02-02T22:47:03.418251Z
+Attacker gains root
+Drops AHTKzAEv
+Modifies SSH + passwords
+Installs root cron persistence
+Cron runs every minute
+Cron:
+Drops .b4nd1d0 into /var/tmp/*
+Executes payload
+Rewrites cron to ensure it stays installed
+This is post-compromise persistence, not recon.
+
+Root-level scheduled persistence was established via crontab
+The cron job executed every ~60 seconds
+It repeatedly spawned hidden payloads in /var/tmp
+This activity was automated and non-interactive
+
+### .b4nd1d0 & diicot
+- a _leetspeak_ spelling of "Bandito"
+- Known Malware Associations
+   - .b4nd1d0 has been observed in real Linux malware families in the wild
+   - It’s typically a secondary payload, backdoor, or helper binary
+   - Its consistent naming makes it easier for the malware’s cron/systemd scripts to find and execute it repeatedly.
+
+- Random gibberish names = likely session-specific payloads
+   - .b4nd1d0 = fixed, intentional, likely malicious component
+   - Its repeated creation alongside cron persistence is a strong indicator of automated malware activity, not just a student experiment.
+
+ <br>
+ 
+<img width="643" height="583" alt="image" src="https://github.com/user-attachments/assets/d775f701-74fa-44bf-bda9-2ca113e9ff3b" /> <br>
+SOURCE: DarkTrace blog
+
+<br>
+
+### ./ygljglkjgfg0
+
+- `ygljglkjgfg0` appears
+   - First seen at /usr/bin/ygljglkjgfg0
+   - Downloaded via curl and wget from a remote host (23.160.56.194/p.txt)
+   - Then copied to /etc/init.d/ygljglkjgfg0 and /etc/cron.hourly/gcc.sh
+- This is stage 1 payload deployment:
+   - /usr/bin copy = persistent executable
+   - /etc/init.d = run at boot
+   - /etc/cron.hourly = run every hour or as scheduled
+  
+- Stage 2 and replication
+   - tdrbhhtkky copied from ygljglkjgfg0
+   - omicykvmml copied from ygljglkjgfg0
+   - These are clones or secondary payloads, probably:
+Backdoors
+Miner binaries (if that was the intent)
+Remote control scripts
+
+- Randomized names (ygljglkjgfg0, ygljglkjgfg1, tdrbhhtkky, omicykvmml) = evade detection
+
+- Crontab modification
+You see a bunch of tmp.* files in /var/spool/cron/crontabs/ (like tmp.RYF9JE and tmp.SHGiEW) along with root crontab activity.
+These are temporary cron files created when the malware manipulates the root crontab.
+Tools like crontab - write to temp files first, then rename them into place.
+That explains the frequent FileCreated + FileRenamed events — the malware is adding a scheduled job.
+
+The malware edits /etc/crontab to remove old references to gcc.sh and add a new entry:
+*/3 * * * * root /etc/cron.hourly/gcc.sh
+This ensures the malware executes every 3 minutes.
+This explains why cron is still active but “drowned out” — it’s being overwritten and hijacked by the malware.
+
+✅ Key points from this activity
+
+Persistent scheduling: malware hijacks cron and cron.hourly.
+
+Multi-stage deployment: initial payload (ygljglkjgfg0) spawns additional binaries.
+
+Self-replication: copies itself to multiple locations for redundancy.
+
+Remote fetch: uses curl/wget to pull more binaries.
+
+Cleanup & rename: old cron temp files are renamed/removed to hide traces.
+
+<br>
+
+<img width="1148" height="343" alt="image" src="https://github.com/user-attachments/assets/30eae789-719e-49e9-8338-21a71efeb701" />
+
+<br>
 
 ### Authentication Context and Lab Configuration
 
