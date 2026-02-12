@@ -313,6 +313,56 @@ rm -rf .bash_history ~/.bash_history
 
 <br>
 
+---
+## SSH Brute Force on Internal Subnet (10.1.0.0/24)
+
+**Malware is scanning internal subnet `10.1.0.0/24`**
+   - IP addresses in the range of _(10.1.0.0–10.1.0.255)_ were probed
+   - _Port 22 SSH_ → looking for servers that accept SSH connections
+   -  If SSH is open, the malware tries common passwords for user accounts <br>
+   <br>
+   
+**Passwords from your earlier retea script**
+
+```
+root root
+root rootroot
+root root123
+root root123456
+root 123456
+root 123
+```
+
+   - Each attempt generates a _ConnectionRequest_ log, whether it succeeds or fails
+   - No _ConnectionSuccess_ was observed
+
+ <br>
+
+```kql
+ DeviceNetworkEvents
+| where DeviceName contains "fix-michael"
+| where TimeGenerated >= ago(15d)
+| where RemotePort == "22" 
+| project TimeGenerated, ActionType, InitiatingProcessAccountName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, Protocol, RemoteIP, RemoteIPType, RemotePort
+| order by TimeGenerated asc
+```
+
+<br>
+
+<img width="1096" height="307" alt="image" src="https://github.com/user-attachments/assets/6efd8585-e0dc-4120-967f-cf6c4eb6779b" />
+
+<Br>
+
+**If it successfully logs in, it can restart the whole process:**
+   - Install itself on the new host
+   - Delete competing malware
+   - Run miners (like xmrig or cnrig)
+   - Hide traces (clear logs, remove bash history)
+
+<br>
+
+---
+
 ### Root Cron Persistence
 
 <br>
@@ -847,53 +897,16 @@ Beaconing = the infected machine initiating an outbound connection to an attacke
 
 - Cyber Range environment was previously targeted by malware, specifically linked to this lab
 - as we will soon see, this VM was compromised 12 minutes after password was updated
-
-```kql
- DeviceNetworkEvents
-| where DeviceName contains "fix-michael"
-| where TimeGenerated >= ago(15d)
-| where RemotePort == "22" 
-| project TimeGenerated, ActionType, InitiatingProcessAccountName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, Protocol, RemoteIP, RemoteIPType, RemotePort
-| order by TimeGenerated asc
-```
-from: 10.1.0.0   to: 10.1.0.255
-<img width="1096" height="307" alt="image" src="https://github.com/user-attachments/assets/6efd8585-e0dc-4120-967f-cf6c4eb6779b" />
+- 
 
 
-What the malware is doing with the IP scan
 
-When it scans IPs in order (like your logs show), it’s basically probing other machines to see if it can connect. Specifically:
 
-Ports 22 (SSH) → looking for servers that accept SSH connections.
 
-2️⃣ What it’s trying after connecting
 
-Once it finds a host that responds on one of these ports:
 
-If SSH is open, the malware tries default or common passwords for user accounts.
 
-From your earlier retea script, you can see it generates a big list of passwords for each Linux user:
 
-If it successfully logs in with any of those passwords, it can:
-
-Install itself on the new host
-
-Run miners (like xmrig or cnrig)
-
-Delete competing malware
-
-Hide traces (clear logs, remove bash history)
-
-3️⃣ Why your IPs descend
-Each one gets a “ConnectionRequest” logged, whether it succeeds or fails.
-
-root root
-root rootroot
-root root123
-root root123456
-root 123456
-root 123
-...
 
 <img width="1772" height="1057" alt="image" src="https://github.com/user-attachments/assets/0b716d64-9008-4f0e-b1ab-8562b253104d" />
 
