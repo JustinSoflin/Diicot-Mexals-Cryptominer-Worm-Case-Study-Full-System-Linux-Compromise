@@ -1,7 +1,5 @@
 # Diicot (aka Mexals) Cryptominer Worm Analysis | Full-System Linux Compromise
 
----
-
 ## Report Information
 
 - **Analyst:** Justin Soflin  
@@ -15,6 +13,29 @@
 - **User Context:** root | Unauthorized miner installation & persistence  
 - **Tools & Data Sources:** Microsoft Defender for Endpoint, Log Analytics Workspaces, KQL (Kusto Query Language), Linux audit logs  
 - **Scope:** Full-System Linux compromise, system-level execution, persistence analysis, malware delivery chain reconstruction, log tampering assessment, post compromise 
+
+---
+
+# Executive Summary
+
+On **January 30, 2026**, a student Linux virtual machine `linux-programmatic-fix-michael` in the Cyber Range environment was fully compromised by an automated crypto-mining malware campaign known as **Diicot (aka Mexals)**. The malware exploited intentionally weak authentication configured for a lab exercise, installing unauthorized software, creating persistent backdoors, and performing reconnaissance.
+
+Because prior containment measures were implemented following the **initial April 2025 compromise** by the same malware campaign, its activity was limited in scope. The malware attempted to evade detection by clearing logs and obfuscating files, established long-term access, and scanned only the internal network for other targets.
+
+The compromise occurred **less than 15 minutes** after the student updated credentials, and did not trigger any alerts from the Microsoft Azure Safeguard Team. No active cryptocurrency miners were observed running, although the malware's setup actions were consistent with preparing the system for mining activity.
+
+**Key Points for Leadership:**
+
+| Event | Observed Outcome |
+|-------|-----------------|
+| Initial Compromise | Malware successfully executed on student VM |
+| Unauthorized Access | Root-level account accessed without permission |
+| Persistence | Backdoors created to maintain long-term access |
+| Internal Scanning | Updated NSG rules limited scanning to subnet |
+| Evasion | Logs were cleared and binaries renamed |
+| Cloud Response | No response from Azure cloud services |
+
+<Br>
 
 ---
 
@@ -34,17 +55,7 @@
 - [Recommended Actions](#recommended-actions)
 - [Conclusion](#conclusion)
 
----
-
-## Executive Summary
-
-The student Linux virtual machine `linux-programmatic-fix-michael` was compromised by an automated cryptocurrency mining malware campaign. The investigation was initiated following a Microsoft Defender for Endpoint alert indicating **Malware or  PUA (Potentially Unwanted Application)** Observed.
-
-This incident occurred during an active **student lab exercise** in which the **root account password was intentionally set to `root`** to generate alerts during Tenable vulnerability scanning exercises. While expected in a controlled instructional environment, this configuration significantly weakened the system’s security posture and exposed the VM to real-world internet scanning and brute-force activity.
-
-Telemetry confirms that an external actor successfully authenticated as `root`, downloaded and executed a malicious ELF binary, established persistence using legacy init scripts, renamed system utilities to evade detection, implanted SSH keys for long-term access, and deliberately destroyed forensic artifacts.
-
-VirusTotal analysis of the recovered binary returned a **46 / 63 detection score**, classifying the file as a **Trojan**, confirming the activity was malicious and not the result of student experimentation or administrative automation.
+<br>
 
 ---
 
