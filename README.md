@@ -70,6 +70,10 @@ The compromise occurred **less than 15 minutes** after the student updated crede
 
 <Br>
 
+<img width="1110" height="650" alt="image" src="https://github.com/user-attachments/assets/27845e1f-8f2a-4b5c-80d1-7168ce15ff6c" />
+
+<br>
+
 ---
 
 # Investigation
