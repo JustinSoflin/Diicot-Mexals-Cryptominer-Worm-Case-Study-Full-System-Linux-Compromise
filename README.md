@@ -164,6 +164,8 @@ MDE sensor:   observes + labels it
 Log Analytics: stores & exposes it
 ```
 
+<br>
+
 ---
 
 ### Authentication Lab Context
@@ -342,10 +344,11 @@ rm -rf .bash_history ~/.bash_history
 <br>
 
 ---
-## SSH Brute Force on Internal Subnet (10.1.0.0/24)
+
+## SSH Brute Force on Internal Subnet
 
 **Malware scans internal subnet `10.1.0.0/24`**
-   - Malware probes IP addresses in the range of _(10.1.0.0–10.1.0.255)_
+   - Malware probes IP addresses in the range of _10.1.0.0 – 10.1.0.255_
    - _Port 22 SSH_ → looking for servers that accept SSH connections
    -  If SSH is open, the malware tries common passwords for user accounts <br>
    <br>
@@ -414,6 +417,8 @@ root 123
    - That explains the frequent FileCreated + FileRenamed events — the malware is adding a scheduled job
 
      <br>
+
+---
      
 ### .b4nd1d0 
 - a _leetspeak_ spelling of "Bandido" or "Bandit"
@@ -427,6 +432,8 @@ root 123
 <img width="1175" height="343" alt="image" src="https://github.com/user-attachments/assets/27adc996-b56a-4990-8b6d-688639596920" />
 
 <br>
+
+---
 
 ### Malicious Binary Download p.txt & r.txt
 
@@ -673,7 +680,7 @@ rm -rf /dev/shm/retea
  
      <br>
 
-     ---
+---
      
 ### Persistence via /etc/init.d
 
@@ -1001,6 +1008,8 @@ Miner
 <br>
 <br>
 
+---
+
 ## Cyber Range Engineer responds
 
 - New outbound rules for _SSH_ and common crypto miner ports denied
@@ -1020,6 +1029,8 @@ Miner
 **Cyber Range targeted by malware again** _Jan. 30, 2026_
 - Compromised VM successfully scanned subnet _10.1.0.0/24:22_
    - No outbound scans observed
+
+<br>
 
 ---
 
