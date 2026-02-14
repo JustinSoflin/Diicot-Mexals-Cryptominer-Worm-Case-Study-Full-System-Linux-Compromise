@@ -21,7 +21,7 @@
 - [Report Information](#report-information)
 - [Executive Summary](#executive-summary)
 - [Investigation](#investigation)
-  - [Initial Detection: Malware or PUA Observed in MDE](#initial-detection-malware-or-pua-observed-in-mde)
+  - [Detection: Malware or PUA Observed in MDE](#detection-malware-or-pua-observed-in-mde)
   - [First Look Into Compromised Device](#first-look-into-compromised-device)
   - [Authentication Lab Context](#authentication-lab-context)
   - [Student Password Change & First Compromise Artifact](#student-password-change--first-compromise-artifact)
@@ -78,7 +78,7 @@ The compromise occurred **less than 15 minutes** after the student updated crede
 
 # Investigation
 
-### Initial Detection: Malware or PUA Observed in MDE
+### Detection: Malware or PUA Observed in MDE
 
 - MDE generates alert **Malware or PUA** activity on Linux host
 - Alert correlated with suspicious processes occurring under `root`
