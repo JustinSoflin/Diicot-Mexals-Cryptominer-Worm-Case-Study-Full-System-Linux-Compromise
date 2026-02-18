@@ -1,4 +1,4 @@
-# Diicot _(aka Mexals)_ Cryptominer Worm Infection Case Study <br> Full Linux-System Compromise at LOG(N)Pacific
+# Diicot _(aka Mexals)_ Cryptominer Worm Case Study <br> Full Linux-System Compromise at LOG(N)Pacific
 
 <Br>
 
