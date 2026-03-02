@@ -93,7 +93,7 @@ Following the April 2025 event, containment and segmentation improvements were i
 
 <Br>
 
-<img width="1054" height="649" alt="image" src="https://github.com/user-attachments/assets/cfb25b9a-8cef-4cda-90c7-b2e705317aef" />
+<img width="932" height="645" alt="image" src="https://github.com/user-attachments/assets/557292b6-4c52-471b-93e1-5ea8d6d66ae4" />
 
 <br>
 
